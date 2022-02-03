@@ -23,6 +23,7 @@
 #include <adtf_streaming.h>
 #include "ImageBufferCtrl.h"
 
+
 //using namespace adtfstreaming;
 
 #define WORKING_FILE_PATH_SIZE 256
@@ -241,6 +242,7 @@ int main(int argc, char* argv[])
 #if 1
     ImageBufferCtrl mimgCtrl;
 
+	mimgCtrl.enableOpenCL();
     //One DAT parsing and transport
     mimgCtrl.autoPlay(argv[1]);
 

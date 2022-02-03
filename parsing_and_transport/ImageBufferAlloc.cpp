@@ -193,7 +193,7 @@ int ImageBufferAlloc::getAvailIdx_ImageBuffer(void)
         cnt++;
         if(cnt > mimgaddr_List.size()) {
 			printf("......  image buffer is full, all used... if this commment is continuous, Please increase buffer size on ImageBuffer\n");
-            std::this_thread::sleep_for(std::chrono::microseconds(300000));
+            std::this_thread::sleep_for(std::chrono::microseconds(400000));
         }
     }
     return -1;

@@ -11,6 +11,15 @@
 #include <windows.h>
 #endif
 
+#ifdef OPENCV_ON 
+#include <opencv2/opencv.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#ifdef OPENCV_ON_WITH_OPENCL
+#include "opencv2/core/ocl.hpp"
+#endif
+#endif
+
 #include "ImageBufferCtrl.h"
 
 #define WORKING_FILE_PATH_SIZE 256
@@ -41,6 +50,7 @@ ImageBufferCtrl::ImageBufferCtrl() :
     mSleeptime(33333),
     mFPS(30),
     mThread(),
+    mThreadDisp(),
     mLock(),
     //mImageBuffer(0),
     mDebug_enable(true)
@@ -51,6 +61,9 @@ ImageBufferCtrl::~ImageBufferCtrl()
     while (!mPQ_ImgBuf.empty()){
       mPQ_ImgBuf.pop();
     }
+    
+    //remove queue of display windows 
+    mDisplayBuffer.clear();
 }
 int ImageBufferCtrl::setCalculateFPS(long long duration, long long totalofimage)
 {
@@ -109,6 +122,7 @@ int ImageBufferCtrl::start() {
     if (mRunning == false){
         mThread = std::thread(&ImageBufferCtrl::thread_OnProcess, this); 
         //mThread = std::thread(this->thread_OnProcess, this);
+        mThreadDisp = std::thread(&ImageBufferCtrl::thread_DisplayOnProcess, this);
         mRunning = true;
     }
     return 0;
@@ -119,8 +133,19 @@ int ImageBufferCtrl::stop() {
     if (mRunning)
     {
         mRunning = false;
+
         mThread.join();
+
+        #ifdef OPENCV_ON 
+        cv::destroyAllWindows();
+        #endif
+        //remove queue of display windows 
+        mDisplayBuffer.clear();
+
+        mThreadDisp.join();
+
     }
+    
     return 0;
 }
 int ImageBufferCtrl::wait_and_stop() {
@@ -345,14 +370,16 @@ void ImageBufferCtrl::thread_OnProcess() {
 				int tsize = tFrame.width * tFrame.height * tFrame.channel;
 							
 				mPQ_ImgBuf.pop();
+                mLock.unlock();
                 if(tFrame.type == "Video"){
                     int tslot = atoi(tFrame.name.substr(5, tFrame.name.length()).c_str());
 					//skip comparing tFrame.name about "Image"
 					//cout<< atoi(tFrame.name.substr(5, tFrame.name.length()).c_str()) << " ====>" <<endl;
 					//this->publish_ImgFrm(tFrame.data,tsize, atoi(tFrame.name.substr(5, tFrame.name.length()).c_str()), tFrame.width, tFrame.height, tFrame.channel);
+                    if(tslot == 0)
+                        mDisplayBuffer.push_back(tFrame);
                     this->release_ImageBuffer_slot(tslot, tFrame.lock_idx);
 				}
-                mLock.unlock();
 
                 if (0) {
                     ofstream oFile;
@@ -403,6 +430,85 @@ void ImageBufferCtrl::thread_OnProcess() {
     }
 }
 
+void ImageBufferCtrl::thread_DisplayOnProcess() {
+    while (!mRunning)
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    cout << "Start thread_DisplayOnProcess" << endl;
+
+#ifdef OPENCV_ON
+    for (int c = 0; c < mAvail_DATVideoCount; c++) {
+        std::string strDisplayName = "DisplayWindow_" + std::to_string(c);
+        cv::namedWindow(strDisplayName, cv::WINDOW_NORMAL);
+    }
+#endif
+
+    while (mRunning) {
+        //mRunning
+        //cout << "hello display!!" << endl;
+
+        while (!mDisplayBuffer.empty())
+        {
+            datFrameBuffer_t tFrame;
+            tFrame = mDisplayBuffer.front();
+            mDisplayBuffer.pop_front();
+
+
+            //std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::microseconds(9000));
+            //mAvail_DATVideoCount
+            cout << "hello display2!!" << mDisplayBuffer.size() <<endl;
+#ifdef OPENCV_ON 
+            cv::UMat buf, buf_resize;
+            int theight, twidth, ttype;
+            int tslot;
+            
+            theight = tFrame.height;
+            twidth = tFrame.width;
+            ttype = (tFrame.channel * 8) - 8;
+            tslot = atoi(tFrame.name.substr(5, tFrame.name.length()).c_str());
+
+            //mLock.lock();
+            const cv::Mat orgimg(theight, twidth, ttype, tFrame.data);
+            if (tFrame.channel == 1) {
+                cv::resize(orgimg, buf_resize, cv::Size((int)(twidth / 2), (int)(theight / 2)), 0.0, 0.0, 1);
+            }
+            else if (tFrame.channel == 2) {
+                cv::cvtColor(orgimg, buf, cv::COLOR_YUV2BGR_YUYV);
+                cv::resize(buf, buf_resize, cv::Size((int)(twidth / 2), (int)(theight / 2)), 0.0, 0.0, 1);
+                //cv::cvtColor(buf_resize, buf_resize, cv::COLOR_BGR2GRAY);
+                //cv::resize(orgimg, buf_resize, cv::Size((int)(twidth / 1), (int)(theight / 1)), 0.0, 0.0, 1);
+                //cv::cvtColor(orgimg, buf, cv::COLOR_YUV2BGR_YUYV);
+            }
+            else {
+                orgimg.copyTo(buf_resize);
+            }
+            //mLock.unlock();
+
+            std::string strDisplayName = "DisplayWindow_" + std::to_string(tslot);
+            cv::imshow(strDisplayName, buf_resize);
+
+
+
+            cv::waitKey(2);
+#endif
+
+
+        }
+#ifdef WIN32
+        timeBeginPeriod(1);
+#endif
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+#ifdef WIN32
+        timeEndPeriod(1);
+#endif
+    }
+
+    cout << "End display!!" << endl;
+
+}
+
+
+
 int ImageBufferCtrl::autoPlay(const char* fileName){
     std::map<std::string, std::string> tHeader;
     std::vector<sStreamInfo> tStreams;
@@ -443,4 +549,41 @@ int ImageBufferCtrl::autoPlay(const char* fileName){
     vidStreams.clear();
 
 	return 1;
+}
+
+int ImageBufferCtrl::enableOpenCL() {
+    SDATSEND_SEND_I_Print("\n%s %d\n", __FUNCTION__, __LINE__);
+#ifdef OPENCV_ON_WITH_OPENCL
+    // Testing whether or not to use OpenCL 
+    if (!cv::ocl::haveOpenCL()) {
+        std::cout << " Error : this system is not use OpenCL." << std::endl;
+        return  -1;
+    }
+
+    // Create context
+    cv::ocl::Context context;
+    if (!context.create(cv::ocl::Device::TYPE_GPU)) {
+        std::cout << " Error : it can not create context." << std::endl;
+        return  -1;
+    }
+
+    // GPU device info
+    std::cout << context.ndevices() << " GPU device (s) detected " << std::endl;
+    for (size_t i = 0; i < context.ndevices(); i++) {
+        cv::ocl::Device device = context.device(i);
+        std::cout << " - Device " << i << " --- " << std::endl;
+        std::cout << " Name : " << device.name() << std::endl;
+        std::cout << " Availability : " << device.available() << std::endl;
+        std::cout << "Image Support : " << device.imageSupport() << std::endl;
+        std::cout << " OpenCL C version : " << device.OpenCL_C_Version() << std::endl;
+    }
+
+    // use device #0 
+    cv::ocl::Device(context.device(0));
+
+    // enable OpenCL
+    cv::ocl::setUseOpenCL(true);
+#endif
+    return 0;
+
 }
