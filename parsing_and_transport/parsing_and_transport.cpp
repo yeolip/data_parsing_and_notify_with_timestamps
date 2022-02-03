@@ -199,6 +199,10 @@ void MAKE_userDAT(int argc, char* argv[]) {
 	std::vector<sStreamInfo> streams;
 	ImageBufferCtrl imgCtrl;
 	
+	if (argc <= 2) {
+		printf("usage: makeDat.exe source-DAT-File destination-DAT-File {save-percentage:default 100}\n\n");
+		return;
+	}
 	char strWorkingFile[WORKING_FILE_PATH_SIZE];
 	imgCtrl.Decompress(argv[1], strWorkingFile);
 	imgCtrl.QueryFileInfo(strWorkingFile, header, streams);

@@ -1,4 +1,6 @@
 
+project(parsing_and_transport)
+
 FILE(GLOB_RECURSE SRC_HEADER *.h *.hpp )
 FILE(GLOB_RECURSE SRC_FILES *.cpp *.c)
 
@@ -26,16 +28,16 @@ endforeach(TMP_PATH)
 #set(CODEC_ADTF_SRCS codec/codec_adtf/codec_adtf.cpp codec/codec_adtf/rice.cpp codec/codec_adtf/codec_adtf.cpp codec/codec_adtf/codec_rice.cpp)
 
 
-SET(SRC_DIR ${PROJECT_SOURCE_DIR}/examples/parsing_and_transport)
+SET(SRC_DIR ${ADTF_STREAMING_DIR}/parsing_and_transport)
 
 message(STATUS ${SRC_HEADER})
 message(STATUS ${SRC_FILES})
-message(STATUS ${PROJECT_SOURCE_DIR}/include)
+message(STATUS ${ADTF_STREAMING_DIR}/include)
 message(STATUS ${SRC_DIR})
 
 add_definitions(-DWIN32 -D_DEBUG -DUNICODE)
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${ADTF_STREAMING_DIR}/include)
 include_directories(${SRC_DIR})
 include_directories(${SRC_DIR}/adtf)
 include_directories(${SRC_DIR}/codec)
@@ -127,3 +129,32 @@ else (WIN32)
         CONFIGURATIONS Release
     )
 endif (WIN32)
+
+##################################
+
+
+
+add_executable(makeDat  
+    ${SRC_FILES} 
+)
+
+target_compile_definitions(makeDat PUBLIC _RUN_MAKE_USER_DAT_=1)
+
+
+if (WIN32)
+    target_link_libraries(makeDat ${ADTF_STREAMING_DIR}/lib/${ADTF_STREAMING_LIB}.lib Vfw32 winmm)
+else (WIN32)
+    if(ADTF_FFMPEG_DIR)
+        target_link_libraries(makeDat avutil avformat avcodec)
+    endif(ADTF_FFMPEG_DIR) 
+    set_target_properties(makeDat PROPERTIES INSTALL_RPATH "$ORIGIN/;${ADTF_FFMPEG_DIR}/lib")
+endif (WIN32)
+
+if(NOT WIN32)
+    #this way the streaming lib will be loaded from the same directory that the binary resides in
+    set_target_properties(makeDat PROPERTIES INSTALL_RPATH "$ORIGIN/")
+endif(NOT WIN32)
+
+install(TARGETS makeDat DESTINATION bin/debug CONFIGURATIONS Debug)
+install(TARGETS makeDat DESTINATION bin CONFIGURATIONS RelWithDebInfo)
+install(TARGETS makeDat DESTINATION bin CONFIGURATIONS Release)
