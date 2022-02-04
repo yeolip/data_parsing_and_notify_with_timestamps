@@ -25,7 +25,6 @@
 #include "ImageBufferAlloc.h"
 #include "adtf/ADTFStreamingLib.h"
 
-
 using namespace std;
 using namespace adtfstreaming;
 
@@ -70,6 +69,8 @@ class ImageBufferCtrl : public ImageBufferAlloc, public ADTFStreamingLib
         ImageBufferCtrl();
         ~ImageBufferCtrl();
 
+        int enableOpenCL();
+
         void setDebugEnable(int flag) { mDebug_enable = flag; }
         int setCalculateFPS(long long duration, long long totalofimage);
         int setFPS(long long fps);
@@ -79,9 +80,13 @@ class ImageBufferCtrl : public ImageBufferAlloc, public ADTFStreamingLib
         //unsigned char* connectImageBuffer(int idx);
         //void disconnectImageBuffer(int idx);
         void thread_OnProcess();
+        void thread_DisplayOnProcess();
         int start();
         int stop();
 		int wait_and_stop();
+
+        //void imshow_dv(std::string name, cv::Mat addr);
+        //void distory_cv();
 
         int autoPlay(const char* fileName);
 
@@ -97,6 +102,9 @@ class ImageBufferCtrl : public ImageBufferAlloc, public ADTFStreamingLib
         //ImageBufferAlloc mimgAlloc;    //        imgAlloc.createImageBuffer(1280, 720, 3, 10);
 		int mAvail_DATVideoCount;
         bool mDebug_enable;
+
+        std::list<datFrameBuffer_t> mDisplayBuffer;
+        std::thread mThreadDisp;
 };
 
 #endif IMAGE_BUFFER_CTRL

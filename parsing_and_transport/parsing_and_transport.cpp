@@ -23,6 +23,7 @@
 #include <adtf_streaming.h>
 #include "ImageBufferCtrl.h"
 
+
 //using namespace adtfstreaming;
 
 #define WORKING_FILE_PATH_SIZE 256
@@ -199,6 +200,10 @@ void MAKE_userDAT(int argc, char* argv[]) {
 	std::vector<sStreamInfo> streams;
 	ImageBufferCtrl imgCtrl;
 	
+	if (argc <= 2) {
+		printf("usage: makeDat.exe source-DAT-File destination-DAT-File {save-percentage:default 100}\n\n");
+		return;
+	}
 	char strWorkingFile[WORKING_FILE_PATH_SIZE];
 	imgCtrl.Decompress(argv[1], strWorkingFile);
 	imgCtrl.QueryFileInfo(strWorkingFile, header, streams);
@@ -235,16 +240,26 @@ int main(int argc, char* argv[])
     }
 
 #if 1
-    ImageBufferCtrl mimgCtrl;
+    ImageBufferCtrl* mimgCtrl;
+	mimgCtrl = new ImageBufferCtrl();
 
+	mimgCtrl->enableOpenCL();
     //One DAT parsing and transport
-    mimgCtrl.autoPlay(argv[1]);
+    mimgCtrl->autoPlay(argv[1]);
 
+	delete mimgCtrl;
+	mimgCtrl = NULL;
+	printf("Next\n");
     //Two DAT parsing and transport
-    if (argc == 3)
-        mimgCtrl.autoPlay(argv[2]);
+///*
+	if (argc == 3) {
+		mimgCtrl = new ImageBufferCtrl();
+//		mimgCtrl->enableOpenCL();
+		mimgCtrl->autoPlay(argv[2]);
+		delete mimgCtrl;
 
-
+	}
+//*/
 #else
     char strWorkingFile[WORKING_FILE_PATH_SIZE];
 

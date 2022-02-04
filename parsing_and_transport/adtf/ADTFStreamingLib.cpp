@@ -330,7 +330,7 @@ int ADTFStreamingLib::QueryFileInfo(const char* strFilename, std::map<std::strin
 int ADTFStreamingLib::CopyChunks(const char* strFilename, const char* targetFilename, std::vector<sStreamInfo> streamInfo, float percentage)
 {
     if (strFilename == NULL || targetFilename == NULL || percentage == 0.0) {
-        printf("usage: copychunks.exe source-DAT-File destination-DAT-File {save-percentage:default 100}\n");
+        printf("usage: makeDat.exe source-DAT-File destination-DAT-File {save-percentage:default 100}\n");
         return -1;
         
     }

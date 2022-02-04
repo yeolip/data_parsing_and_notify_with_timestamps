@@ -1,28 +1,49 @@
 # data_parsing_and_notify_with_timestamps
-ÀÌ ÇÁ·ÎÁ§Æ®´Â ADTF(Automotive Data and Time-Triggered Framework) DAT·Î <BR>
-¸¸µé¾îÁø Streamingµ¥ÀÌÅÍ¸¦ ÆÄ½ÌÇÏ¿© ÇÏ¿©º¸°í, <BR>
-TimeStamp¿¡ ¸Â°Ô notifyÇÏµµ·Ï ¸¸µé¾î º¸¾Ò´Ù.<BR>
-Ãß°¡ÀûÀ¸·Î Á¤»óÀûÀÎ notify°¡ ‰ç´ÂÁö ¿µ»óÀ» Ãâ·ÂÇÏµµ·Ï Áö¿øÇÏ·ÁÇÑ´Ù.<BR>
+ì´ í”„ë¡œì íŠ¸ëŠ” ADTF(Automotive Data and Time-Triggered Framework) DATë¡œ<BR>
+ë§Œë“¤ì–´ì§„ Streamingë°ì´í„°ë¥¼ íŒŒì‹±í•˜ì—¬ í•˜ì—¬ë³´ê³ ,<BR>
+TimeStampì— ë§ê²Œ notifyí•˜ë„ë¡ ë§Œë“¤ì–´ ë³´ì•˜ë‹¤.<BR>
+ì¶”ê°€ì ìœ¼ë¡œ notifyëœ ì´ë¯¸ì§€ë¥¼ renderingí™”ë©´ì— ì¶œë ¥í•˜ì—¬, íŒŒì‹±ì´ ì •ìƒì ìœ¼ë¡œ ë¬ëŠ”ì§€ ê²€ì¦í• ìˆ˜ ìˆë„ë¡ êµ¬í˜„í•´ë³´ì•˜ë‹¤.<BR>
 
 In this project, I tried to parse and report the streaming data made <BR>
 with ADTF (Automotive Data and Time-Triggered Framework) DAT, <BR> 
 and to notify according to TimeStamp. <BR>
-Additionally, we are trying to support outputting an image <BR>
-whether a normal notification has been reached. <BR>
+In addition, the notified image is output to the rendering screen, <BR>
+so that it can be verified whether the parsing is normal. <BR>
 
-##  Function
+## Output
+<img src="./desc/output01.png">ImageSlot #0,#1,#2 1280x720x2ch 15fps YUVU format</img>
+<img src="./desc/output02.png">ImageSlot #0,#1 1280x964x1ch 54fps GRAY format</img>
+<img src="./desc/output03.png">LogResult</img>
+
+
+## Function
 1. ADTF DAT parsing streaming-data using ADTFStreaming library
 2. Gathering streaming-data with timestamp
 3. Scheduling and transport on time (thread)
 4. Rendering streaming-data using opencv (thread) - not yet
 
+## How to use
+1. **parsing_and_transport** <BR>
+usage: <BR>
+parsing_and_transport.exe arg1 [arg2] <BR>
+arg1 - source-DAT-File1 <BR> 
+arg2 - source-DAT-File2 <BR>
+2. **makeDat.exe** <BR>
+usage: <BR>
+makeDat.exe arg1 arg2 [arg3] <BR>
+arg1 - source-DAT-File <BR> 
+arg2 - destination-DAT-File <BR> 
+arg3 - save-percentage: default 100 <BR>
+
 ## License
-ÀÌ ÇÁ·ÎÁ§Æ®´Â ¾ÆÆÄÄ¡ 2.0 ¶óÀÌ¼¾½º¸¦ µû¸£°í ÀÖ´Ù. ±×¸®°í adtf streaming library(MPL-2.0)¿Í opencv(BSD-3-Clause)¿Í ¸¦ »ç¿ëÇÏ°í ÀÖ´Ù.
+ì´ í”„ë¡œì íŠ¸ëŠ” ì•„íŒŒì¹˜ 2.0 ë¼ì´ì„¼ìŠ¤ë¥¼ ë”°ë¥´ê³  ìˆë‹¤. ê·¸ë¦¬ê³  adtf streaming library(MPL-2.0)ì™€ opencv(BSD-3-Clause)ì™€ ë¥¼ ì‚¬ìš©í•˜ê³  ìˆë‹¤.
 
 This project is under the Apache 2.0 license. And adtf streaming library (MPL-2.0) and opencv (BSD-3-Clause) are used.
 
 # Reference and code
 https://www.elektrobit.com/products/automated-driving/eb-assist/adtf/
 https://support.digitalwerk.net/adtf_libraries/adtf-streaming-library/v2/api/page_whats_new.html
-https://opencv.org/
+https://opencv.org/ <BR>
+**DAT-file made by LGE (ex)cms_example_short.dat, het_example_short.dat)) - do not use commercial**
+
 
