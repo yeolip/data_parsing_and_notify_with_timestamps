@@ -469,14 +469,14 @@ void ImageBufferCtrl::thread_DisplayOnProcess() {
 
         while (!mDisplayBuffer.empty())
         {
+            printf("Disp %d\n", mDisplayBuffer.size());
             mLock.lock();
             datFrameBuffer_t tFrame;
             tFrame = mDisplayBuffer.front();
+
             mDisplayBuffer.pop_front();
 
-            printf("Disp %d\n", mDisplayBuffer.size());
 #ifdef OPENCV_ON 
-            cv::Mat buf, buf_resize;
             int theight, twidth, ttype;
             int tslot;
             
@@ -487,13 +487,14 @@ void ImageBufferCtrl::thread_DisplayOnProcess() {
             std::string strDisplayName = "DisplayWindow_" + std::to_string(tslot);
             //printf("%s\n", strDisplayName.c_str());
 
-#if 0 //def OPENCV_ON_WITH_OPENCL
+#ifdef OPENCV_ON_WITH_OPENCL
+            cv::UMat buf, buf_resize;
             const cv::Mat orgimg2(theight, twidth, ttype, tFrame.data);
             cv::UMat orgimg = orgimg2.getUMat(cv::ACCESS_READ);
 #else
+            cv::Mat buf, buf_resize;
             const cv::Mat orgimg(theight, twidth, ttype, tFrame.data);
 #endif
-
             if (tFrame.channel == 1) {
                 cv::resize(orgimg, buf_resize, cv::Size((int)(twidth / 2), (int)(theight / 2)), 0.0, 0.0, 1);
             }
@@ -511,9 +512,9 @@ void ImageBufferCtrl::thread_DisplayOnProcess() {
             //this->release_ImageBuffer_slot(tslot, tFrame.lock_idx);
 
             cv::imshow(strDisplayName, buf_resize);
-            //this->imshow_dv(strDisplayName, buf_resize);
             cv::waitKey(1);
             mLock.unlock();
+
 
 #endif
 
