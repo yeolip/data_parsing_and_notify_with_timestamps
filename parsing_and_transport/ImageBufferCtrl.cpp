@@ -28,6 +28,7 @@
 #define C_PRPL "\033[35m"
 #define C_RED  "\033[31m"
 #define C_CYAN "\x1b[36m"
+#define C_YLLW "\033[33m"
 
 #define SDATSEND_PARSING_I_Print(...)	\
 	{							\
@@ -43,12 +44,19 @@
 		printf(C_NRML);	\
     }
 
+#define SDATSEND_RECV_I_Print(...)	\
+	{							\
+		printf(C_YLLW);	\
+		printf(__VA_ARGS__);	\
+		printf(C_NRML);	\
+    }
 
 
 ImageBufferCtrl::ImageBufferCtrl() :
     mRunning(false),
     mSleeptime(33333),
     mFPS(30),
+    mAvail_DATVideoCount(0),
     mThread(),
     mThreadDisp(),
     mLock(),
@@ -59,11 +67,11 @@ ImageBufferCtrl::ImageBufferCtrl() :
 ImageBufferCtrl::~ImageBufferCtrl()
 {
     while (!mPQ_ImgBuf.empty()){
-      mPQ_ImgBuf.pop();
+        mPQ_ImgBuf.pop();
     }
-    
-    //remove queue of display windows 
-    mDisplayBuffer.clear();
+    while (!mDisplayBuffer.empty()){
+        mDisplayBuffer.pop_front();
+    }
 }
 int ImageBufferCtrl::setCalculateFPS(long long duration, long long totalofimage)
 {
@@ -120,8 +128,8 @@ int ImageBufferCtrl::start() {
     std::lock_guard<std::mutex> lock(mLock);
 	printf("start\n");
     if (mRunning == false){
+
         mThread = std::thread(&ImageBufferCtrl::thread_OnProcess, this); 
-        //mThread = std::thread(this->thread_OnProcess, this);
         mThreadDisp = std::thread(&ImageBufferCtrl::thread_DisplayOnProcess, this);
         mRunning = true;
     }
@@ -136,13 +144,11 @@ int ImageBufferCtrl::stop() {
 
         mThread.join();
 
-        #ifdef OPENCV_ON 
-        cv::destroyAllWindows();
-        #endif
-        //remove queue of display windows 
-        mDisplayBuffer.clear();
-
         mThreadDisp.join();
+#ifdef OPENCV_ON 
+        cv::destroyAllWindows();
+#endif
+
 
     }
     
@@ -152,6 +158,9 @@ int ImageBufferCtrl::wait_and_stop() {
 	while (!mPQ_ImgBuf.empty()){	
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
+    while (!mDisplayBuffer.empty()) {
+        mDisplayBuffer.pop_front();
+    }
 	this->stop();
     return 0;
 }
@@ -370,16 +379,20 @@ void ImageBufferCtrl::thread_OnProcess() {
 				int tsize = tFrame.width * tFrame.height * tFrame.channel;
 							
 				mPQ_ImgBuf.pop();
-                mLock.unlock();
+                //mLock.unlock();
                 if(tFrame.type == "Video"){
                     int tslot = atoi(tFrame.name.substr(5, tFrame.name.length()).c_str());
 					//skip comparing tFrame.name about "Image"
 					//cout<< atoi(tFrame.name.substr(5, tFrame.name.length()).c_str()) << " ====>" <<endl;
 					//this->publish_ImgFrm(tFrame.data,tsize, atoi(tFrame.name.substr(5, tFrame.name.length()).c_str()), tFrame.width, tFrame.height, tFrame.channel);
-                    if(tslot == 0)
-                        mDisplayBuffer.push_back(tFrame);
+                    //if(tslot == 0)
+                    mDisplayBuffer.push_back(tFrame);
+                    mLock.unlock();
                     this->release_ImageBuffer_slot(tslot, tFrame.lock_idx);
-				}
+                }
+                else {
+                    mLock.unlock();
+                }
 
                 if (0) {
                     ofstream oFile;
@@ -436,29 +449,34 @@ void ImageBufferCtrl::thread_DisplayOnProcess() {
     cout << "Start thread_DisplayOnProcess" << endl;
 
 #ifdef OPENCV_ON
+    //printf("start%d\n", cv::startWindowThread());
+    ///*
     for (int c = 0; c < mAvail_DATVideoCount; c++) {
         std::string strDisplayName = "DisplayWindow_" + std::to_string(c);
-        cv::namedWindow(strDisplayName, cv::WINDOW_NORMAL);
+        //cv::destroyWindow(strDisplayName);
+        //cv::startWindowThread();
+        //cv::getWindowProperty(strDisplayName, c);
+        cv::namedWindow(strDisplayName, cv::WINDOW_AUTOSIZE);
+        printf("open display windows=%d\n", c);
     }
+    //*/
 #endif
 
     while (mRunning) {
         //mRunning
-        //cout << "hello display!!" << endl;
+
+
 
         while (!mDisplayBuffer.empty())
         {
+            mLock.lock();
             datFrameBuffer_t tFrame;
             tFrame = mDisplayBuffer.front();
             mDisplayBuffer.pop_front();
 
-
-            //std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::this_thread::sleep_for(std::chrono::microseconds(9000));
-            //mAvail_DATVideoCount
-            cout << "hello display2!!" << mDisplayBuffer.size() <<endl;
+            printf("Disp %d\n", mDisplayBuffer.size());
 #ifdef OPENCV_ON 
-            cv::UMat buf, buf_resize;
+            cv::Mat buf, buf_resize;
             int theight, twidth, ttype;
             int tslot;
             
@@ -466,14 +484,22 @@ void ImageBufferCtrl::thread_DisplayOnProcess() {
             twidth = tFrame.width;
             ttype = (tFrame.channel * 8) - 8;
             tslot = atoi(tFrame.name.substr(5, tFrame.name.length()).c_str());
+            std::string strDisplayName = "DisplayWindow_" + std::to_string(tslot);
+            //printf("%s\n", strDisplayName.c_str());
 
-            //mLock.lock();
+#if 0 //def OPENCV_ON_WITH_OPENCL
+            const cv::Mat orgimg2(theight, twidth, ttype, tFrame.data);
+            cv::UMat orgimg = orgimg2.getUMat(cv::ACCESS_READ);
+#else
             const cv::Mat orgimg(theight, twidth, ttype, tFrame.data);
+#endif
+
             if (tFrame.channel == 1) {
                 cv::resize(orgimg, buf_resize, cv::Size((int)(twidth / 2), (int)(theight / 2)), 0.0, 0.0, 1);
             }
             else if (tFrame.channel == 2) {
                 cv::cvtColor(orgimg, buf, cv::COLOR_YUV2BGR_YUYV);
+                //cv::cvtColor(orgimg, buf, cv::COLOR_YUV2GRAY_YUYV);
                 cv::resize(buf, buf_resize, cv::Size((int)(twidth / 2), (int)(theight / 2)), 0.0, 0.0, 1);
                 //cv::cvtColor(buf_resize, buf_resize, cv::COLOR_BGR2GRAY);
                 //cv::resize(orgimg, buf_resize, cv::Size((int)(twidth / 1), (int)(theight / 1)), 0.0, 0.0, 1);
@@ -482,24 +508,23 @@ void ImageBufferCtrl::thread_DisplayOnProcess() {
             else {
                 orgimg.copyTo(buf_resize);
             }
-            //mLock.unlock();
+            //this->release_ImageBuffer_slot(tslot, tFrame.lock_idx);
 
-            std::string strDisplayName = "DisplayWindow_" + std::to_string(tslot);
             cv::imshow(strDisplayName, buf_resize);
+            //this->imshow_dv(strDisplayName, buf_resize);
+            cv::waitKey(1);
+            mLock.unlock();
 
-
-
-            cv::waitKey(2);
 #endif
 
 
         }
 #ifdef WIN32
-        timeBeginPeriod(1);
+//        timeBeginPeriod(1);
 #endif
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        //std::this_thread::sleep_for(std::chrono::microseconds(1000));
 #ifdef WIN32
-        timeEndPeriod(1);
+//        timeEndPeriod(1);
 #endif
     }
 

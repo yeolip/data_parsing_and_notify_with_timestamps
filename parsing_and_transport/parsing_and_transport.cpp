@@ -240,17 +240,26 @@ int main(int argc, char* argv[])
     }
 
 #if 1
-    ImageBufferCtrl mimgCtrl;
+    ImageBufferCtrl* mimgCtrl;
+	mimgCtrl = new ImageBufferCtrl();
 
-	mimgCtrl.enableOpenCL();
+	mimgCtrl->enableOpenCL();
     //One DAT parsing and transport
-    mimgCtrl.autoPlay(argv[1]);
+    mimgCtrl->autoPlay(argv[1]);
 
+	delete mimgCtrl;
+	mimgCtrl = NULL;
+	printf("Next\n");
     //Two DAT parsing and transport
-    if (argc == 3)
-        mimgCtrl.autoPlay(argv[2]);
+///*
+	if (argc == 3) {
+		mimgCtrl = new ImageBufferCtrl();
+//		mimgCtrl->enableOpenCL();
+		mimgCtrl->autoPlay(argv[2]);
+		delete mimgCtrl;
 
-
+	}
+//*/
 #else
     char strWorkingFile[WORKING_FILE_PATH_SIZE];
 

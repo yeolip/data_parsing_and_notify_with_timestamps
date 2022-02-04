@@ -25,7 +25,6 @@
 #include "ImageBufferAlloc.h"
 #include "adtf/ADTFStreamingLib.h"
 
-
 using namespace std;
 using namespace adtfstreaming;
 
@@ -85,6 +84,9 @@ class ImageBufferCtrl : public ImageBufferAlloc, public ADTFStreamingLib
         int start();
         int stop();
 		int wait_and_stop();
+
+        //void imshow_dv(std::string name, cv::Mat addr);
+        //void distory_cv();
 
         int autoPlay(const char* fileName);
 
