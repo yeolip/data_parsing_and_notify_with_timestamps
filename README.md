@@ -20,7 +20,7 @@ so that it can be verified whether the parsing is normal. <BR>
 1. ADTF DAT parsing streaming-data using ADTFStreaming library
 2. Gathering streaming-data with timestamp
 3. Scheduling and transport on time (thread)
-4. Rendering streaming-data using opencv (thread) - not yet
+4. Rendering streaming-data using opencv (thread) 
 
 ## How to use
 1. **parsing_and_transport** <BR>
